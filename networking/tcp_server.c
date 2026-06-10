@@ -25,6 +25,10 @@ int main() {
 
     printf("Client connected!\n");
 
+    char buffer[100];
+    int n = read(client_fd, buffer, sizeof(buffer));
+    write(1, buffer, n);
+
     close(client_fd);
     close(listen_fd);
 
