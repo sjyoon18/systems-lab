@@ -1,4 +1,6 @@
 main
+tcp_server
+tcp_client
 a.out
 
 .DS_Store
