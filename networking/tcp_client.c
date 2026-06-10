@@ -18,7 +18,30 @@ int main() {
 
     connect(sockfd, (struct sockaddr *)&server_add, sizeof(server_add));
 
-    write(sockfd, "Hello from client\n", 18);
+    char buffer[100];
+    int n;
+
+    while (1) {
+        printf("send to server: ");
+        fflush(stdout);
+
+        n = read(0, buffer, sizeof(buffer));
+        if (n <= 0) {
+            break;
+        }
+
+        write(sockfd, buffer, n);
+
+        int echoed = read(sockfd, buffer, sizeof(buffer));
+
+        if (echoed <= 0) {
+            break;
+        }
+
+        printf("echo from server: ");
+        fflush(stdout);
+        write(1, buffer, echoed);
+    }
 
     close(sockfd);
 

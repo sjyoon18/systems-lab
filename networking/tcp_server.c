@@ -23,11 +23,20 @@ int main() {
 
     int client_fd = accept(listen_fd, NULL, NULL);
 
-    printf("Client connected!\n");
+    printf("[server] client CONNECTED\n");
 
     char buffer[100];
-    int n = read(client_fd, buffer, sizeof(buffer));
-    write(1, buffer, n);
+    int n;
+
+    while((n = read(client_fd, buffer, sizeof(buffer))) > 0) {
+        printf("[client] ");
+        fflush(stdout);
+        write(1, buffer, n);
+
+        write(client_fd, buffer, n);
+    }
+
+    printf("[server] client DISCONNECTED\n");
 
     close(client_fd);
     close(listen_fd);
