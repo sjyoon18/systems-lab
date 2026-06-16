@@ -6,7 +6,13 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <signal.h>
-#include<sys/wait.h>
+#include <sys/wait.h>
+
+struct HttpRequest {
+    char method[16];
+    char path[256];
+    char version[32];
+};
 
 void reap_children(int sig) {
     while(waitpid(-1, NULL, WNOHANG) > 0) {
@@ -15,11 +21,11 @@ void reap_children(int sig) {
 
 void send_file_response(int client_fd, char *file_path) {
     char body[4096];
-    
+
     int file_fd = open(file_path, O_RDONLY);
 
     if (file_fd < 0) {
-        char *not_found =
+        char *not_found = 
         "HTTP/1.1 404 Not Found\r\n"
         "Content-Type: text/plain\r\n"
         "Content-Length: 14\r\n"
@@ -32,7 +38,7 @@ void send_file_response(int client_fd, char *file_path) {
     }
 
     int body_len = read(file_fd, body, sizeof(body));
-    
+
     close(file_fd);
 
     char header[256];
@@ -49,6 +55,16 @@ void send_file_response(int client_fd, char *file_path) {
 
     write(client_fd, header, header_len);
     write(client_fd, body, body_len);
+}
+
+void parse_request(char *buffer, struct HttpRequest *req) {
+    sscanf(
+        buffer,
+        "%15s %255s %31s",
+        req->method,
+        req->path,
+        req->version
+    );
 }
 
 int main() {
@@ -70,7 +86,6 @@ int main() {
 
     printf("Server listening on port 8080...\n");
 
-    
     while(1) {
         int client_fd = accept(listen_fd, NULL, NULL);
 
@@ -79,23 +94,27 @@ int main() {
         if (pid == 0) {
             close(listen_fd);
 
-             char buffer[4096];
+            char buffer[4096];
 
             int n = read(client_fd, buffer, sizeof(buffer));
 
             printf("\n[server] client CONNECTED\n");
 
+            struct HttpRequest req;
+
+            parse_request(buffer, &req);
+
             printf("-------REQUEST-------\n");
             write(1, buffer, n);
             printf("\n---------------------\n");
 
-            if (strncmp(buffer, "GET / ", 6) == 0) {
+            if (strcmp(req.path, "/") == 0) {
                 send_file_response(client_fd, "www/index.html");
             }
-            else if (strncmp(buffer, "GET /cats ", 10) == 0) {
-                send_file_response(client_fd, "www/cats.html");
+            else if (strcmp(req.path, "/cats") == 0) {
+               send_file_response(client_fd, "www/cats.html");
             }
-            else if (strncmp(buffer, "GET /dogs ", 10) == 0) {
+            else if (strcmp(req.path, "/dogs") == 0) {
                 send_file_response(client_fd, "www/dogs.html");
             }
             else {
