@@ -108,6 +108,20 @@ int main() {
             write(1, buffer, n);
             printf("\n---------------------\n");
 
+            if (strcmp(req.method, "GET") != 0) {
+                char *invalid_method =
+                    "HTTP/1.1 405 Method Not Allowed\r\n"
+                    "Content-Type: text/plain\r\n"
+                    "Content-Length: 23\r\n"
+                    "Connection: close\r\n"
+                    "\r\n"
+                    "405 Method Not Allowed\n";
+
+                write(client_fd, invalid_method, strlen(invalid_method));
+                close(client_fd);
+                exit(0);
+            }
+            
             if (strcmp(req.path, "/") == 0) {
                 send_file_response(client_fd, "www/index.html");
             }
