@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 struct HttpRequest {
     char method[16];
@@ -52,7 +53,6 @@ void build_file_path(char *url_path, char *file_path, int file_path_size) {
 }
 
 void send_file_response(int client_fd, char *file_path) {
-    char body[4096];
 
     int file_fd = open(file_path, O_RDONLY);
 
@@ -69,9 +69,10 @@ void send_file_response(int client_fd, char *file_path) {
         return;
     }
 
-    int body_len = read(file_fd, body, sizeof(body));
+    struct stat file_info;
+    fstat(file_fd, &file_info);
 
-    close(file_fd);
+    int file_size = file_info.st_size;
 
     char header[256];
     int header_len = snprintf(
@@ -82,11 +83,19 @@ void send_file_response(int client_fd, char *file_path) {
         "Content-Length: %d\r\n"
         "Connection: close\r\n"
         "\r\n",
-        body_len
+        file_size
     );
 
     write(client_fd, header, header_len);
-    write(client_fd, body, body_len);
+
+    char buffer[4096];
+    int n;
+    
+    while ((n = read(file_fd, buffer, sizeof(buffer))) > 0) {
+        write(client_fd, buffer, n);
+    }
+
+    close(file_fd);
 }
 
 void parse_request(char *buffer, struct HttpRequest *req) {
