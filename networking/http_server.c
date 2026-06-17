@@ -131,6 +131,20 @@ int main() {
                 close(client_fd);
                 exit(0);
             }
+
+            if (strstr(req.path, "..") != NULL) {
+                char *forbidden =
+                    "HTTP/1.1 403 Forbidden\r\n"
+                    "Content-Type: text/plain\r\n"
+                    "Content-Length: 14\r\n"
+                    "Connection: close\r\n"
+                    "\r\n"
+                    "403 Forbidden\n";
+                
+                write(client_fd, forbidden, strlen(forbidden));
+                close(client_fd);
+                exit(0);
+            }
             
             char file_path[512];
 
