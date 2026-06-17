@@ -19,6 +19,30 @@ void reap_children(int sig) {
     }
 }
 
+void send_403(int client_fd) {
+    char *invalid_method =
+        "HTTP/1.1 403 Forbidden\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 14\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "403 Forbidden\n";
+
+    write(client_fd, invalid_method, strlen(invalid_method));
+}
+
+void send_405(int client_fd) {
+    char *invalid_method =
+        "HTTP/1.1 405 Method Not Allowed\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 23\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "405 Method Not Allowed\n";
+
+    write(client_fd, invalid_method, strlen(invalid_method));
+}
+
 void build_file_path(char *url_path, char *file_path, int file_path_size) {
     if (strcmp(url_path, "/") == 0) {
         snprintf(file_path, file_path_size, "www/index.html");
@@ -75,6 +99,43 @@ void parse_request(char *buffer, struct HttpRequest *req) {
     );
 }
 
+void handle_client(int client_fd) {
+    char buffer[4096];
+
+    int n = read(client_fd, buffer, sizeof(buffer));
+
+    if (n <= 0) {
+        return;
+    }
+
+    printf("\n[server] client CONNECTED\n");
+
+    struct HttpRequest req;
+
+    parse_request(buffer, &req);
+    printf(
+        "[request] method = %s; path = %s; version = %s\n",
+        req.method,
+        req.path,
+        req.version
+    );
+
+    if (strcmp(req.method, "GET") != 0) {
+        send_405(client_fd);
+        return;
+    }
+
+    if (strstr(req.path, "..") != NULL) {
+        send_403(client_fd);
+        return;
+    }
+    
+    char file_path[512];
+
+    build_file_path(req.path, file_path, sizeof(file_path));
+    send_file_response(client_fd, file_path);
+}
+
 int main() {
     signal(SIGCHLD, reap_children);
 
@@ -102,55 +163,8 @@ int main() {
         if (pid == 0) {
             close(listen_fd);
 
-            char buffer[4096];
-
-            int n = read(client_fd, buffer, sizeof(buffer));
-
-            printf("\n[server] client CONNECTED\n");
-
-            struct HttpRequest req;
-
-            parse_request(buffer, &req);
-            printf(
-                "[request] method = %s path = %s version = %s\n",
-                req.method,
-                req.path,
-                req.version
-            );
-
-            if (strcmp(req.method, "GET") != 0) {
-                char *invalid_method =
-                    "HTTP/1.1 405 Method Not Allowed\r\n"
-                    "Content-Type: text/plain\r\n"
-                    "Content-Length: 23\r\n"
-                    "Connection: close\r\n"
-                    "\r\n"
-                    "405 Method Not Allowed\n";
-
-                write(client_fd, invalid_method, strlen(invalid_method));
-                close(client_fd);
-                exit(0);
-            }
-
-            if (strstr(req.path, "..") != NULL) {
-                char *forbidden =
-                    "HTTP/1.1 403 Forbidden\r\n"
-                    "Content-Type: text/plain\r\n"
-                    "Content-Length: 14\r\n"
-                    "Connection: close\r\n"
-                    "\r\n"
-                    "403 Forbidden\n";
-                
-                write(client_fd, forbidden, strlen(forbidden));
-                close(client_fd);
-                exit(0);
-            }
+            handle_client(client_fd);
             
-            char file_path[512];
-
-            build_file_path(req.path, file_path, sizeof(file_path));
-            send_file_response(client_fd, file_path);
-
             close(client_fd);
             exit(0);
         }
