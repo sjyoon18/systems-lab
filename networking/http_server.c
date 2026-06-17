@@ -19,6 +19,14 @@ void reap_children(int sig) {
     }
 }
 
+void build_file_path(char *url_path, char *file_path, int file_path_size) {
+    if (strcmp(url_path, "/") == 0) {
+        snprintf(file_path, file_path_size, "www/index.html");
+    } else {
+        snprintf(file_path, file_path_size, "www%s.html", url_path);
+    }
+}
+
 void send_file_response(int client_fd, char *file_path) {
     char body[4096];
 
@@ -103,10 +111,12 @@ int main() {
             struct HttpRequest req;
 
             parse_request(buffer, &req);
-
-            printf("-------REQUEST-------\n");
-            write(1, buffer, n);
-            printf("\n---------------------\n");
+            printf(
+                "[request] method = %s path = %s version = %s\n",
+                req.method,
+                req.path,
+                req.version
+            );
 
             if (strcmp(req.method, "GET") != 0) {
                 char *invalid_method =
@@ -122,18 +132,10 @@ int main() {
                 exit(0);
             }
             
-            if (strcmp(req.path, "/") == 0) {
-                send_file_response(client_fd, "www/index.html");
-            }
-            else if (strcmp(req.path, "/cats") == 0) {
-               send_file_response(client_fd, "www/cats.html");
-            }
-            else if (strcmp(req.path, "/dogs") == 0) {
-                send_file_response(client_fd, "www/dogs.html");
-            }
-            else {
-                send_file_response(client_fd, "nofile");
-            }
+            char file_path[512];
+
+            build_file_path(req.path, file_path, sizeof(file_path));
+            send_file_response(client_fd, file_path);
 
             close(client_fd);
             exit(0);
