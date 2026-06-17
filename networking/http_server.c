@@ -20,6 +20,23 @@ void reap_children(int sig) {
     }
 }
 
+char *get_content_type(char *file_path) {
+    if (strstr(file_path, ".html") != NULL) {
+        return "text/html";
+    }
+    if (strstr(file_path, ".css") != NULL) {
+        return "text/css";
+    }
+    if (strstr(file_path, ".js") != NULL) {
+        return "application/javascript";
+    }
+    if (strstr(file_path, ".png") != NULL) {
+        return "image/png";
+    }
+
+    return "application/octet-stream";
+}
+
 void send_403(int client_fd) {
     char *invalid_method =
         "HTTP/1.1 403 Forbidden\r\n"
@@ -48,7 +65,7 @@ void build_file_path(char *url_path, char *file_path, int file_path_size) {
     if (strcmp(url_path, "/") == 0) {
         snprintf(file_path, file_path_size, "www/index.html");
     } else {
-        snprintf(file_path, file_path_size, "www%s.html", url_path);
+        snprintf(file_path, file_path_size, "www%s", url_path);
     }
 }
 
@@ -74,15 +91,19 @@ void send_file_response(int client_fd, char *file_path) {
 
     int file_size = file_info.st_size;
 
+    char *content_type = get_content_type(file_path);
+    printf("[server] content_type = %s\n", content_type);
+
     char header[256];
     int header_len = snprintf(
         header,
         sizeof(header),
         "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
+        "Content-Type: %s\r\n"
         "Content-Length: %d\r\n"
         "Connection: close\r\n"
         "\r\n",
+        content_type,
         file_size
     );
 
@@ -90,7 +111,7 @@ void send_file_response(int client_fd, char *file_path) {
 
     char buffer[4096];
     int n;
-    
+
     while ((n = read(file_fd, buffer, sizeof(buffer))) > 0) {
         write(client_fd, buffer, n);
     }
@@ -117,13 +138,11 @@ void handle_client(int client_fd) {
         return;
     }
 
-    printf("\n[server] client CONNECTED\n");
-
     struct HttpRequest req;
 
     parse_request(buffer, &req);
     printf(
-        "[request] method = %s; path = %s; version = %s\n",
+        "\n[request] method = %s; path = %s; version = %s\n",
         req.method,
         req.path,
         req.version
