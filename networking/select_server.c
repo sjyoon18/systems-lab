@@ -4,11 +4,17 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/select.h>
+#include <errno.h>
 
 #define MAX_CLIENTS 100
 
 int main() {
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (listen_fd < 0) {
+        perror("socket");
+        return 1;
+    }
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
@@ -17,8 +23,17 @@ int main() {
     addr.sin_port = htons(8080);
     addr.sin_addr.s_addr = INADDR_ANY;
 
-    bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr));
-    listen(listen_fd, 5);
+    if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        perror("bind");
+        close(listen_fd);
+        return 1;
+    }
+
+    if (listen(listen_fd, 5) < 0) {
+        perror("listen");
+        close(listen_fd);
+        return 1;
+    }
 
     printf("select server listening on port 8080...\n");
 
@@ -46,10 +61,20 @@ int main() {
             }
         }
 
-        select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+        int ready = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+
+        if (ready < 0) {
+            perror("select");
+            continue;
+        } 
 
         if(FD_ISSET(listen_fd, &read_fds)) {
             int client_fd = accept(listen_fd, NULL, NULL);
+
+            if (client_fd < 0) {
+                perror("accept");
+                continue;
+            }
 
             printf("client CONNECTED: fd = %d\n", client_fd);
 
@@ -69,12 +94,19 @@ int main() {
 
                 int n = read(client_fd, buffer, sizeof(buffer));
                 
-                if (n <= 0) {
+                if (n < 0) {
+                    perror("read");
+
+                    close(client_fd);
+                    clients[i] = -1;
+                }
+                else if (n == 0) {
                     printf("client DISCONNECTED: fd = %d\n", client_fd);
 
                     close(client_fd);
                     clients[i] = -1;
-                } else {
+                }
+                else {
                     printf("\n[client_fd = %d]:\n", client_fd);
                     write(1, buffer, n);
 
