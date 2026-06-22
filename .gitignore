@@ -4,6 +4,7 @@ tcp_client
 concurrent_server
 http_server
 http_server_threaded
+select_server
 a.out
 
 .DS_Store
