@@ -3,8 +3,8 @@ tcp_server
 tcp_client
 concurrent_server
 http_server
-http_server_threaded
-select_server
+http_server_thread
+http_server_select
 a.out
 
 .DS_Store
