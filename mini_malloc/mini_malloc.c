@@ -6,18 +6,33 @@ struct block {
     size_t size;
     int free;
     struct block *next;
+    struct block *prev;
 };
 
 struct block *head = NULL;
+struct block *tail = NULL;
+
+void append_block(struct block *block) {
+    block->next = NULL;
+    block->prev = tail;
+
+    if (tail != NULL) {
+        tail->next = block;
+    } else {
+        head = block;
+    }
+
+    tail = block;
+}
 
 struct block* find_free_block(size_t size) {
-    struct block *current = head;
+    struct block *current = tail;
 
     while (current != NULL) {
         if (current->free == 1 && current->size >= size) {
             return current;
         }
-        current = current->next;
+        current = current->prev;
     }
 
     return NULL;
@@ -46,9 +61,7 @@ void *my_malloc(size_t size) {
 
     metadata->size = size;
     metadata->free = 0;
-    metadata->next = head;
-
-    head = metadata;
+    append_block(metadata);
 
     return metadata + 1;
 }
