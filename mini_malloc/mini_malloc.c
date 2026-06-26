@@ -91,6 +91,26 @@ void *my_malloc(size_t size) {
     return metadata + 1;
 }
 
+void coalesce_next(struct block *block) {
+    if (block == NULL || block->next == NULL) {
+        return;
+    }
+
+    struct block *next = block->next;
+
+    if (block->free == 1 && next->free == 1) {
+        block->size = block->size + sizeof(struct block) + next->size;
+
+        block->next = next->next;
+
+        if (next->next != NULL) {
+            next->next->prev = block;
+        } else {
+            tail = block;
+        }
+    }
+}
+
 void my_free(void *ptr) {
     if (ptr == NULL) {
         return;
@@ -98,21 +118,26 @@ void my_free(void *ptr) {
     
     struct block *metadata = (struct block *)ptr - 1;
     metadata->free = 1;
+
+    coalesce_next(metadata);
+
+    if (metadata->prev != NULL) {
+        coalesce_next(metadata->prev);
+    }
 }
 
 int main() {
-    char *p1 = my_malloc(100);
+    char *p1 = my_malloc(20);
+    char *p2 = my_malloc(30);
+    char *p3 = my_malloc(40);
 
-    printf("p1 = %p\n", p1);
-
+    my_free(p2);
+    my_free(p3);
     my_free(p1);
 
-    char *p2 = my_malloc(20);
-    char *p3 = my_malloc(30);
-    char *p4 = my_malloc(40);
+    char *p4 = my_malloc(60);
 
-    printf("p2 = %p\n", p2);
-    printf("p3 = %p\n", p3);
+    printf("p1 = %p\n", p1);
     printf("p4 = %p\n", p4);
 
     return 0;
