@@ -39,15 +39,15 @@ struct block* find_free_block(size_t size) {
 }
 
 void split_block(struct block *block, size_t size) {
-    size_t spare_size = block->size - size - sizeof(struct block);
-
-    if (spare_size <= 0) {
+    if (block->size <= size + sizeof(struct block)) {
         return;
     }
 
+    size_t new_block_size = block->size - size - sizeof(struct block);
+
     struct block *new_block = (struct block *)((char *)(block + 1) + size);
 
-    new_block->size = spare_size;
+    new_block->size = new_block_size;
     new_block->free = 1;
     new_block->next = block->next;
     new_block->prev = block;
@@ -102,16 +102,16 @@ void my_free(void *ptr) {
 
 int main() {
     char *p1 = my_malloc(100);
-    char *p2 = my_malloc(10);
 
     printf("p1 = %p\n", p1);
-    printf("p2 = %p\n", p2);
 
     my_free(p1);
 
-    char *p3 = my_malloc(10);
-    char *p4 = my_malloc(10);
+    char *p2 = my_malloc(20);
+    char *p3 = my_malloc(30);
+    char *p4 = my_malloc(40);
 
+    printf("p2 = %p\n", p2);
     printf("p3 = %p\n", p3);
     printf("p4 = %p\n", p4);
 
