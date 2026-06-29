@@ -152,6 +152,27 @@ void *my_realloc(void *ptr, size_t size) {
         return ptr;
     }
 
+    struct block *next = metadata->next;
+
+    if (
+        next != NULL &&
+        next->free == 1 &&
+        metadata->size + sizeof(struct block) + next->size >= size
+    ) {
+        metadata->size += sizeof(struct block) + next->size;
+        metadata->next = next->next;
+
+        if (metadata->next != NULL) {
+            metadata->next->prev = metadata;
+        } else {
+            tail = metadata;
+        }
+
+        split_block(metadata, size);
+
+        return ptr;
+    }
+
     void *new_ptr = my_malloc(size);
 
     if (new_ptr == NULL) {
@@ -170,25 +191,27 @@ void *my_realloc(void *ptr, size_t size) {
 }
 
 int main() {
-    char *p = my_malloc(20);
+    char *p1 = my_malloc(20);
+    char *p2 = my_malloc(40);
 
-    strcpy(p, "Hello World!");
+    strcpy(p1, "Hello World!");
 
-    printf("Initial:\n");
-    printf("address = %p\n", p);
-    printf("data = %s\n\n", p);
+    printf("Before free:\n");
+    printf("p1 = %p\n", p1);
+    printf("p2 = %p\n\n", p2);
 
-    p = my_realloc(p, 40);
+    my_free(p2);
 
-    printf("After growing:\n");
-    printf("address = %p\n", p);
-    printf("data = %s\n\n", p);
+    p1 = my_realloc(p1, 40);
 
-    p = my_realloc(p, 16);
+    printf("After realloc:\n");
+    printf("p1 = %p\n", p1);
+    printf("data = %s\n\n", p1);
 
-    printf("After shrinking:\n");
-    printf("address = %p\n", p);
-    printf("data = %s\n", p);
+    char *p3 = my_malloc(8);
+
+    printf("Add p3:\n");
+    printf("p3 = %p\n", p3);
 
     return 0;
 }
