@@ -12,6 +12,10 @@ struct block {
 struct block *head = NULL;
 struct block *tail = NULL;
 
+size_t align8(size_t size) {
+    return (size + 7) & ~7;
+}
+
 void append_block(struct block *block) {
     block->next = NULL;
     block->prev = tail;
@@ -66,6 +70,8 @@ void *my_malloc(size_t size) {
     if (size == 0) {
         return NULL;
     }
+
+    size = align8(size);
 
     struct block *free_block = find_free_block(size);
 
@@ -127,18 +133,9 @@ void my_free(void *ptr) {
 }
 
 int main() {
-    char *p1 = my_malloc(20);
-    char *p2 = my_malloc(30);
-    char *p3 = my_malloc(40);
-
-    my_free(p2);
-    my_free(p3);
-    my_free(p1);
-
-    char *p4 = my_malloc(60);
+    char *p1 = my_malloc(1);
+    char *p2 = my_malloc(1);
 
     printf("p1 = %p\n", p1);
-    printf("p4 = %p\n", p4);
-
-    return 0;
+    printf("p2 = %p\n", p2);
 }
