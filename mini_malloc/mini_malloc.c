@@ -98,6 +98,20 @@ void *my_malloc(size_t size) {
     return metadata + 1;
 }
 
+void *my_calloc(size_t count, size_t size) {
+    size_t total_size = count * size;
+
+    void *ptr = my_malloc(total_size);
+
+    if (ptr == NULL) {
+        return NULL;
+    }
+
+    memset(ptr, 0, total_size);
+
+    return ptr;
+}
+
 void coalesce_next(struct block *block) {
     if (block == NULL || block->next == NULL) {
         return;
@@ -191,27 +205,13 @@ void *my_realloc(void *ptr, size_t size) {
 }
 
 int main() {
-    char *p1 = my_malloc(20);
-    char *p2 = my_malloc(40);
+    int *arr = my_calloc(5, sizeof(int));
 
-    strcpy(p1, "Hello World!");
+    for (int i = 0; i < 5; i ++) {
+        printf("%d ", arr[i]);
+    }
 
-    printf("Before free:\n");
-    printf("p1 = %p\n", p1);
-    printf("p2 = %p\n\n", p2);
-
-    my_free(p2);
-
-    p1 = my_realloc(p1, 40);
-
-    printf("After realloc:\n");
-    printf("p1 = %p\n", p1);
-    printf("data = %s\n\n", p1);
-
-    char *p3 = my_malloc(8);
-
-    printf("Add p3:\n");
-    printf("p3 = %p\n", p3);
+    printf("\n");
 
     return 0;
 }
