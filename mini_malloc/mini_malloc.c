@@ -163,6 +163,11 @@ void *my_realloc(void *ptr, size_t size) {
 
     if (metadata->size >= size) {
         split_block(metadata, size);
+
+        if (metadata->next != NULL) {
+            coalesce_next(metadata->next);
+        }
+
         return ptr;
     }
 
@@ -204,14 +209,47 @@ void *my_realloc(void *ptr, size_t size) {
     return new_ptr;
 }
 
-int main() {
-    int *arr = my_calloc(5, sizeof(int));
+void print_heap(void) {
+    struct block *current = head;
+    int i = 0;
 
-    for (int i = 0; i < 5; i ++) {
-        printf("%d ", arr[i]);
+    while (current != NULL) {
+
+        printf("+------------------------------+\n");
+        printf("| Block %-2d %-10s          |\n", i, current->free ? "(FREE)" : "(USED)");
+        printf("+------------------------------+\n");
+        printf("| Addr : %-21p |\n", (void *)current);
+        printf("| Size : %-21zu |\n", current->size);
+        printf("+------------------------------+\n");
+
+        current = current->next;
+        i++;
     }
 
     printf("\n");
+}
 
-    return 0;
+int main() {
+    char *p1 = my_malloc(100);
+    char *p2 = my_malloc(40);
+    char *p3 = my_malloc(60);
+
+    printf("Initial:\n");
+    print_heap();
+
+    my_free(p2);
+    printf("After free p2:\n");
+    print_heap();
+
+    my_free(p1);
+    printf("After free p1:\n");
+    print_heap();
+
+    char *p4 = my_malloc(60);
+    printf("After malloc p4:\n");
+    print_heap();
+
+    my_realloc(p4, 10);
+    printf("After realloc p4 (shrink):\n");
+    print_heap();
 }

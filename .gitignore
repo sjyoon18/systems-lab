@@ -5,6 +5,7 @@ concurrent_server
 http_server
 http_server_thread
 http_server_select
+mini_malloc
 a.out
 
 .DS_Store
