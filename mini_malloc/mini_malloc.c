@@ -13,9 +13,13 @@ struct block {
 struct block *head = NULL;
 struct block *tail = NULL;
 
+// Alignment
+
 size_t align8(size_t size) {
     return (size + 7) & ~7;
 }
+
+// Block List Helpers
 
 void append_block(struct block *block) {
     block->next = NULL;
@@ -43,6 +47,8 @@ struct block* find_free_block(size_t size) {
     return NULL;
 }
 
+// Heap Helpers
+
 void split_block(struct block *block, size_t size) {
     if (block->size <= size + sizeof(struct block)) {
         return;
@@ -67,51 +73,6 @@ void split_block(struct block *block, size_t size) {
     block->next = new_block;
 }
 
-void *my_malloc(size_t size) {
-    if (size == 0) {
-        return NULL;
-    }
-
-    size = align8(size);
-
-    struct block *free_block = find_free_block(size);
-
-    if (free_block != NULL) {
-        split_block(free_block,size);
-        free_block->free = 0;
-
-        return free_block + 1;
-    }
-
-    void *raw = sbrk(sizeof(struct block) + size);
-
-    if (raw == (void *)-1) {
-        return NULL;
-    }
-
-    struct block *metadata = raw;
-
-    metadata->size = size;
-    metadata->free = 0;
-    append_block(metadata);
-
-    return metadata + 1;
-}
-
-void *my_calloc(size_t count, size_t size) {
-    size_t total_size = count * size;
-
-    void *ptr = my_malloc(total_size);
-
-    if (ptr == NULL) {
-        return NULL;
-    }
-
-    memset(ptr, 0, total_size);
-
-    return ptr;
-}
-
 void coalesce_next(struct block *block) {
     if (block == NULL || block->next == NULL) {
         return;
@@ -132,18 +93,51 @@ void coalesce_next(struct block *block) {
     }
 }
 
+// Allocator API
+
+void *my_malloc(size_t size) {
+    if (size == 0) {
+        return NULL;
+    }
+
+    size = align8(size);
+
+    struct block *free_block = find_free_block(size);
+
+    if (free_block != NULL) {
+        split_block(free_block, size);
+        free_block->free = 0;
+
+        return free_block + 1;
+    }
+
+    void *raw = sbrk(sizeof(struct block) + size);
+
+    if (raw == (void *)-1) {
+        return NULL;
+    }
+
+    struct block *block = raw;
+
+    block->size = size;
+    block->free = 0;
+    append_block(block);
+
+    return block + 1;
+}
+
 void my_free(void *ptr) {
     if (ptr == NULL) {
         return;
     }
     
-    struct block *metadata = (struct block *)ptr - 1;
-    metadata->free = 1;
+    struct block *block = (struct block *)ptr - 1;
+    block->free = 1;
 
-    coalesce_next(metadata);
+    coalesce_next(block);
 
-    if (metadata->prev != NULL) {
-        coalesce_next(metadata->prev);
+    if (block->prev != NULL) {
+        coalesce_next(block->prev);
     }
 }
 
@@ -159,35 +153,35 @@ void *my_realloc(void *ptr, size_t size) {
 
     size = align8(size);
 
-    struct block *metadata = (struct block *)ptr - 1;
+    struct block *block = (struct block *)ptr - 1;
 
-    if (metadata->size >= size) {
-        split_block(metadata, size);
+    if (block->size >= size) {
+        split_block(block, size);
 
-        if (metadata->next != NULL) {
-            coalesce_next(metadata->next);
+        if (block->next != NULL) {
+            coalesce_next(block->next);
         }
 
         return ptr;
     }
 
-    struct block *next = metadata->next;
+    struct block *next = block->next;
 
     if (
         next != NULL &&
         next->free == 1 &&
-        metadata->size + sizeof(struct block) + next->size >= size
+        block->size + sizeof(struct block) + next->size >= size
     ) {
-        metadata->size += sizeof(struct block) + next->size;
-        metadata->next = next->next;
+        block->size += sizeof(struct block) + next->size;
+        block->next = next->next;
 
-        if (metadata->next != NULL) {
-            metadata->next->prev = metadata;
+        if (block->next != NULL) {
+            block->next->prev = block;
         } else {
-            tail = metadata;
+            tail = block;
         }
 
-        split_block(metadata, size);
+        split_block(block, size);
 
         return ptr;
     }
@@ -198,7 +192,7 @@ void *my_realloc(void *ptr, size_t size) {
         return NULL;
     }
 
-    size_t copy_size = metadata->size;
+    size_t copy_size = block->size;
     if (copy_size > size) {
         copy_size = size;
     }
@@ -208,6 +202,22 @@ void *my_realloc(void *ptr, size_t size) {
 
     return new_ptr;
 }
+
+void *my_calloc(size_t count, size_t size) {
+    size_t total_size = count * size;
+
+    void *ptr = my_malloc(total_size);
+
+    if (ptr == NULL) {
+        return NULL;
+    }
+
+    memset(ptr, 0, total_size);
+
+    return ptr;
+}
+
+// Debug Utilities
 
 void print_heap(void) {
     struct block *current = head;
@@ -228,6 +238,8 @@ void print_heap(void) {
 
     printf("\n");
 }
+
+// Tests
 
 int main() {
     char *p1 = my_malloc(100);
