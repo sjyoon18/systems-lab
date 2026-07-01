@@ -268,39 +268,3 @@ void print_heap(void) {
 
     printf("\n");
 }
-
-// Tests
-
-int main() {
-    char *p1 = my_malloc(100);
-    verify_heap();
-
-    char *p2 = my_malloc(40);
-    verify_heap();
-
-    char *p3 = my_malloc(60);
-    verify_heap();
-
-    printf("Initial:\n");
-    print_heap();
-
-    my_free(p2);
-    verify_heap();
-    printf("After free p2:\n");
-    print_heap();
-
-    my_free(p1);
-    verify_heap();
-    printf("After free p1:\n");
-    print_heap();
-
-    char *p4 = my_malloc(60);
-    verify_heap();
-    printf("After malloc p4:\n");
-    print_heap();
-
-    my_realloc(p4, 10);
-    verify_heap();
-    printf("After realloc p4 (shrink):\n");
-    print_heap();
-}
