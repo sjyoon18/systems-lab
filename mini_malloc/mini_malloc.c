@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stddef.h>
 #include <string.h>
+#include <assert.h>
 
 struct block {
     size_t size;
@@ -219,6 +220,35 @@ void *my_calloc(size_t count, size_t size) {
 
 // Debug Utilities
 
+void verify_heap(void) {
+    if (head == NULL) {
+        assert(tail == NULL);
+        return;
+    }
+
+    assert(head->prev == NULL);
+    assert(tail->next == NULL);
+
+    struct block *current = head;
+
+    while (current != NULL) {
+        assert(current->size > 0);
+
+        if (current->next != NULL) {
+            assert(current->next->prev == current);
+            assert(!(current->free && current->next->free));
+
+            struct block *expected = (struct block *)((char *)(current + 1) + current->size);
+            assert(current->next == expected);
+        }
+        if (current->prev != NULL) {
+            assert(current->prev->next == current);
+        }
+
+        current = current->next;
+    }
+}
+
 void print_heap(void) {
     struct block *current = head;
     int i = 0;
@@ -243,25 +273,34 @@ void print_heap(void) {
 
 int main() {
     char *p1 = my_malloc(100);
+    verify_heap();
+
     char *p2 = my_malloc(40);
+    verify_heap();
+
     char *p3 = my_malloc(60);
+    verify_heap();
 
     printf("Initial:\n");
     print_heap();
 
     my_free(p2);
+    verify_heap();
     printf("After free p2:\n");
     print_heap();
 
     my_free(p1);
+    verify_heap();
     printf("After free p1:\n");
     print_heap();
 
     char *p4 = my_malloc(60);
+    verify_heap();
     printf("After malloc p4:\n");
     print_heap();
 
     my_realloc(p4, 10);
+    verify_heap();
     printf("After realloc p4 (shrink):\n");
     print_heap();
 }
