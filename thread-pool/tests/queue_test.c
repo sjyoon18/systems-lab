@@ -44,7 +44,5 @@ int main(void) {
     assert(queue_empty(&queue));
     assert(dequeue(&queue) == NULL);
 
-    printf("queue_test passed\n");
-
     return 0;
 }
