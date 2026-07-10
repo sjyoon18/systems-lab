@@ -19,6 +19,8 @@ static void *worker_thread(void *arg) {
         struct job *job = dequeue(&pool->queue);
         pthread_mutex_unlock(&pool->mutex);
         job->function(job->arg);
+
+        free(job);
     }
 
     return NULL;
@@ -46,4 +48,52 @@ int thread_pool_init(struct thread_pool *pool, int num_threads) {
     }
 
     return 0;
+}
+
+int thread_pool_submit(
+    struct thread_pool *pool,
+    void (*function)(void *),
+    void *arg
+) {
+    struct job *job = malloc(sizeof(struct job));
+
+    if (job == NULL) {
+        return -1;
+    }
+
+    job->function = function;
+    job->arg = arg;
+    job->next = NULL;
+
+    pthread_mutex_lock(&pool->mutex);
+
+    if (pool->shutdown) {
+        pthread_mutex_unlock(&pool->mutex);
+        free(job);
+        return -1;
+    }
+
+    enqueue(&pool->queue, job);
+    pthread_cond_signal(&pool->condition);
+    pthread_mutex_unlock(&pool->mutex);
+
+    return 0;
+}
+
+void thread_pool_destroy(struct thread_pool *pool) {
+    pthread_mutex_lock(&pool->mutex);
+
+    pool->shutdown = 1;
+    pthread_cond_broadcast(&pool->condition);
+
+    pthread_mutex_unlock(&pool->mutex);
+
+    for (int i = 0; i < pool->num_threads; i++) {
+        pthread_join(pool->workers[i], NULL);
+    }
+
+    pthread_mutex_destroy(&pool->mutex);
+    pthread_cond_destroy(&pool->condition);
+
+    free(pool->workers);
 }

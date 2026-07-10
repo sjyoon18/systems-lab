@@ -18,4 +18,12 @@ struct thread_pool {
 
 int thread_pool_init(struct thread_pool *pool, int num_threads);
 
+int thread_pool_submit(
+    struct thread_pool *pool,
+    void (*function)(void *),
+    void *arg
+);
+
+void thread_pool_destroy(struct thread_pool *pool);
+
 #endif
