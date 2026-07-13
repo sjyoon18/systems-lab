@@ -28,6 +28,12 @@ struct job *dequeue(struct job_queue *queue) {
 
     queue->head = job->next;
 
+    if (queue->head == NULL) {
+        queue->tail = NULL;
+    }
+
+    job->next = NULL;
+
     return job;
 }
 
