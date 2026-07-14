@@ -129,11 +129,13 @@ void parse_request(char *buffer, struct HttpRequest *req) {
 void handle_client(int client_fd) {
     char buffer[4096];
 
-    int n = read(client_fd, buffer, sizeof(buffer));
+    int n = read(client_fd, buffer, sizeof(buffer) - 1);
 
     if (n <= 0) {
         return;
     }
+
+    buffer[n] = '\0';
 
     struct HttpRequest req;
 
