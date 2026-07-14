@@ -5,6 +5,9 @@ concurrent_server
 http_server
 http_server_thread
 http_server_select
+thread_pool_http_server
+queue_test
+thread_pool_test
 a.out
 
 .DS_Store
