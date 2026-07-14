@@ -6,7 +6,16 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <signal.h>
 #include "../thread-pool/thread_pool.h"
+
+static volatile sig_atomic_t stop_server = 0;
+
+static void handle_sigint(int signal_number) {
+    (void)signal_number;
+    stop_server = 1;
+}
 
 int request_count = 0;
 pthread_mutex_t count_lock;
@@ -205,10 +214,26 @@ int main() {
         return 1;
     }
 
-    while(1) {
+    struct sigaction action;
+
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = handle_sigint;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+
+    if (sigaction(SIGINT, &action, NULL) < 0) {
+        perror("sigaction");
+        close(listen_fd);
+        return 1;
+    }
+
+    while(!stop_server) {
         int client_fd = accept(listen_fd, NULL, NULL);
 
         if (client_fd < 0) {
+            if (errno == EINTR && stop_server) {
+                break;
+            }
             perror("accept");
             continue;
         }
@@ -229,5 +254,7 @@ int main() {
     }
 
     close(listen_fd);
+    thread_pool_destroy(&pool);
+    pthread_mutex_destroy(&count_lock);
     return 0;
 }
