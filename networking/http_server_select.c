@@ -12,6 +12,22 @@
 int main() {
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 
+    int reuse = 1;
+
+    if (
+        setsockopt(
+            listen_fd,
+            SOL_SOCKET,
+            SO_REUSEADDR,
+            &reuse,
+            sizeof(reuse)
+        ) < 0
+    ) {
+        perror("setsockopt");
+        close(listen_fd);
+        return 1;
+    }
+
     if (listen_fd < 0) {
         perror("socket");
         return 1;
