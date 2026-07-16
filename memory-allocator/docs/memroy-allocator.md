@@ -1,8 +1,8 @@
-# Building a Dynamic Memory Allocator in C
+# Dynamic Memory Allocator
 
-## Overview
+## Goal
 
-This project implements a simplified dynamic memory allocator in C.
+Implement a simplified dynamic memory allocator in C to explore heap growth, metadata management, memory reuse, fragmentation, and allocator correctness.
 
 The allocator supports:
 
@@ -395,7 +395,7 @@ Grow?   → Expand in place
 Else    → Allocate → Copy → Free
 ```
 
-## Lessons Learned
+## Reflection
 
 Building a memory allocator reinforced that systems programming is an iterative design process. Every improvement solved one limitation while introducing another, requiring the allocator to evolve incrementally rather than through a single implementation.
 

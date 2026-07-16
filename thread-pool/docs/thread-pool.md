@@ -79,7 +79,7 @@ The queue maintains both a head and tail pointer, allowing constant-time enqueue
 
 ## Synchronization
 
-The queue is shared by all worker threads and producers.
+The queue is shared by worker threads consuming jobs and threads submitting new jobs.
 
 A mutex protects:
 
@@ -88,7 +88,7 @@ A mutex protects:
 
 Only one thread may access this shared state at a time.
 
-Workers avoid busy waiting by sleeping on a condition variable whenever the queue is empty.
+Workers sleep while the queue is empty and recheck the queue after waking before dequeuing work.
 
 ```text
 queue empty
@@ -133,13 +133,8 @@ This guarantees that submitted jobs are completed before the pool is destroyed.
 
 ---
 
-## Concepts Practiced
+## Reflection
 
-- producer-consumer architecture
-- linked-list queues
-- mutexes
-- condition variables
-- thread lifecycle
-- ownership and resource cleanup
-- graceful shutdown
-- reusable concurrent API
+This project clarified that concurrency is primarily a shared-state coordination problem. The mutex protects the queue and shutdown state, while the condition variable allows workers to wait efficiently until that state may have changed.
+
+The implementation also reinforced the importance of ownership and lifetime. Submitted jobs are created by the pool, temporarily owned by the queue, executed and freed by workers, while the worker threads themselves remain alive until graceful shutdown. Encapsulating these responsibilities behind a small API made the thread pool reusable without exposing its synchronization details to callers.

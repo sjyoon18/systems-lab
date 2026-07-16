@@ -1,6 +1,6 @@
-# Building HTTP Servers in C: Processes, Threads, and Event Loops
+# HTTP Server Concurrency Models: Processes, Threads, and Event Loops
 
-## Overview
+## Goal
 
 This project implements the same TCP-based HTTP file server using three different concurrency architectures:
 
@@ -213,7 +213,7 @@ These concerns reinforced the close relationship between systems programming and
 
 ---
 
-## Technical Takeaways
+## Reflection
 
 Implementing the same HTTP server across three concurrency architectures highlighted that improvements in scalability, isolation, or resource efficiency are often competing goals:
 

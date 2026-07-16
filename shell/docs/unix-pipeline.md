@@ -1,4 +1,4 @@
-# Unix Pipeline with C
+# Unix Pipeline
 
 ## Goal
 
@@ -21,7 +21,7 @@ using:
 
 A Unix pipeline connects the standard output of one process to the standard input of another process.
 
-```Plain text
+```text
 stdout                stdin
 ls  -------------->  grep txt
 ```
@@ -39,7 +39,7 @@ The shell:
 2. Creates a child process for the left command (`fork()`)
 3. Creates a child process for the right command (`fork()`)
 
-```Plain text
+```text
 Shell
   ├── Child 1 (ls)
   └── Child 2 (grep txt)
@@ -52,7 +52,7 @@ Shell
 ## Necessity of `fork()`
 
 For example:
-```Bash
+```bash
 ls | grep txt
 ```
 - `ls` produces data.
@@ -70,7 +70,7 @@ pipe(fd);
 ```
 
 After the call:
-```Plain text
+```text
 fd[0] = read end
 fd[1] = write end 
 ```
@@ -126,7 +126,7 @@ replace the child processes with the requested programs.
 
 For example:
 
-```Plain text
+```text
 argv1 -> ls
 argv2 -> grep txt
 ```
@@ -137,7 +137,7 @@ argv2 -> grep txt
 
 Child processes inherit the file descriptors of their parent process:
 
-```Plain text
+```text
 Child 1:
     fd[0]
     fd[1]
@@ -165,7 +165,7 @@ ls | grep txt
 
 Execution flow:
 
-```Plain text
+```text
 Shell
  │ 
  ├── create pipe 
@@ -183,28 +183,8 @@ Shell
 
 ---
 
-## What I Learned
+## Reflection
 
-- A pipe is a kernel-managed byte stream.
-- Bytes written to the write end are available at the read end following the FIFO principle.
-- `fork()` creates the child processes.
-- `dup2()` redirects standard input and output.
-- `execvp()` replaces the process with a requested command.
-- Child processes inherit file descriptors from their parent.
-- Child processes that inherit the same pipe file descriptors can communicate through the pipe.
-- A pipe reaches EOF when it is empty and all write ends have been properly closed.
-- Unix pipelines are built from managing file descriptors and processes
+Implementing a pipeline showed that Unix command composition is fundamentally file-descriptor management. The child programs do not need to understand pipelines; they continue reading from standard input and writing to standard output while the shell changes what those descriptors reference through `dup2()`.
 
----
-
-## Repository Reference
-
-Implementation:
-```Plain text
-shell/main.c
-```
-
-Commit:
-```Plain text
-3e334ea0bd37a2c444d6f27f2cf94642e28f0433
-```
+The project also clarified why descriptor ownership determines behavior. Closing unused pipe ends is necessary not only for cleanup but also for correct EOF delivery. Pipes, process creation, descriptor inheritance, and `execvp()` work together to create behavior that appears much more complex at the shell level.

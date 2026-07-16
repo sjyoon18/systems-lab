@@ -1,4 +1,4 @@
-# Concurrent TCP Echo Server with C
+# Concurrent TCP Echo Server
 
 ## Goal
 Implement a TCP echo server that can handle multiple clients concurrently.
@@ -20,7 +20,7 @@ Concepts explored:
 
 A single-process echo server can only actively handle one client connection at a time:
 
-```Plain text
+```text
 Client A connects
         ↓
 Server handles A
@@ -32,7 +32,7 @@ To handle multiple clients, the server must separate connection acceptance from 
 
 This implementation creates an individual child process for each client connection accepted at the parent process:
 
-```Plain text
+```text
 Client A → Child A
 Client B → Child B
 Client C → Child C
@@ -41,7 +41,7 @@ Client C → Child C
 
 ## Architecture
 
-```Plain text
+```text
                     Parent Process
                      (listen_fd)
                           |
@@ -72,7 +72,7 @@ Client C → Child C
 
 ## Concurrent Server Lifecycle
 
-```Plain text
+```text
 socket()
  ↓
 bind()
@@ -93,7 +93,7 @@ Child handles connected client
 - `listen()` marks the socket as a listening socket.
 - `accept()` blocks until a client connects, then returns a file descriptor for a new connected socket.
 - `fork()` creates a child process to handle that client, allowing multiple client handling:
-```Plain text
+```text
 fork()
     |
     +--> parent  -> continues accepting clients
@@ -108,7 +108,7 @@ fork()
 After `fork()`, the parent and child both inherit the same file descriptor references:
 
 For example:
-```Plain text
+```text
 Parent:
     listen_fd = 3
     client_fd = 4
@@ -119,7 +119,7 @@ Child:
 
 Each process closes unused file descriptors according to their purpose:
 
-```Plain text
+```text
 Parent:
     keeps listen_fd
     closes client_fd
@@ -136,7 +136,7 @@ This prevents unintended resource leaks and ensures correct connection cleanup.
 
 Each child process executes an echo loop:
 
-```Plain text
+```text
 Client stdin
     ↓
 write(sockfd)
@@ -162,7 +162,7 @@ The server simply reads bytes from the connected client socket and writes the sa
 
 When the client disconnects:
 
-```Plain text
+```text
 Client closes socket
         ↓
 Server read() returns 0
@@ -172,7 +172,7 @@ Child exits
 
 The child process no longer executes but the kernel temporarily retains:
 
-```Plain text
+```text
 PID
 Exit status
 Termination information
@@ -199,7 +199,7 @@ while(waitpid(-1, NULL, WNOHANG) > 0) {
 
 so when child exits:
 
-```Plain text
+```text
 Child exits
     ↓
 Kernel sends SIGCHLD
@@ -220,7 +220,7 @@ The signal handler temporarily interrupts the parent process, performs cleanup, 
 multiple child exits may be represented by fewer `SIGCHLD` deliveries because signals can be coalesced.
 
 For example:
-```Plain text
+```text
 Child A exits
 Child B exits
 Child C exits
@@ -242,7 +242,7 @@ to reap all exited children.
 
 ## Execution Model 
 
-```Plain text
+```text
 Parent blocks in accept()
         ↓
 Client connects
@@ -268,7 +268,7 @@ Parent reaps child with waitpid()
 
 A major observation from this project was that Unix exposes many fundamentally different resources through the same abstraction:
 
-```Plain text
+```text
 File        -> read() / write()
 Pipe        -> read() / write()
 TCP Socket  -> read() / write()
@@ -278,30 +278,8 @@ Although files, pipes, and sockets represent different kernel-managed objects, e
 
 ---
 
-## What I Learned
+## Reflection
 
-This project demonstrates my experience combining networking, process management, signals, and file descriptor ownership into a single application.
+This project connected process management with network programming. Each child process owns one connected socket, while the parent remains responsible for accepting new clients and reaping terminated children.
 
-Key takeaways:
-
-- Concurrency can be achieved by combining process creation with socket-based communication.
-- A connected TCP socket is a kernel-managed object whose lifetime is determined by descriptor ownership.
-- Signals are not concurrent threads of execution; a signal handler temporarily interrupts normal execution and returns control to the interrupted context.
-- Zombie processes are not removed automatically; explicit reaping is required to release kernel-maintained termination information.
-- Many seemingly different Unix facilities (files, pipes, sockets) share a common file-descriptor interface, allowing complex systems to be constructed from a small set of primitives.
-
----
-
-## Repository Reference
-
-Implementation:
-```Plain text
-networking/concurrent_server.c
-networking/tcp_client.c
-networking/tcp_server.c
-```
-
-Commit:
-```Plain text
-8735e391dde8388fd05a0abd19c3e200360035bd
-```
+The implementation also reinforced the Unix file-descriptor model. Files, pipes, and sockets represent different kernel objects, but the shared `read()` and `write()` interface makes them composable through the same process and ownership rules. Handling `SIGCHLD` and zombie cleanup showed that concurrency requires managing process lifetime as carefully as connection lifetime.
