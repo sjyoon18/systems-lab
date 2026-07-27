@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 struct entry {
     char *key;
@@ -104,7 +103,7 @@ bool hashmap_put(struct hashmap *map, const char *key, void *value) {
     }
 
     map->entry_count++;
-    
+
     return true;
 }
 
@@ -124,6 +123,35 @@ void *hashmap_get(struct hashmap *map, const char *key) {
     }
 
     return NULL;
+}
+
+bool hashmap_remove(struct hashmap *map, const char *key) {
+    if (map == NULL || key == NULL) {
+        return false;
+    }
+
+    size_t bucket_index = hash_string(key) % map->bucket_count;
+
+    struct entry *previous = NULL;
+    struct entry *current = map->buckets[bucket_index];
+
+    while (current != NULL) {
+        if (strcmp(current->key, key) == 0) {
+            if (previous == NULL) {
+                map->buckets[bucket_index] = current->next;
+            } else {
+                previous->next = current->next;
+            }
+            entry_destroy(current);
+            map->entry_count--;
+            return true;
+        }
+        
+        previous = current;
+        current = current->next;
+    }
+
+    return false;
 }
 
 static void entry_destroy(struct entry *entry) {
