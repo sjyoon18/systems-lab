@@ -1,8 +1,8 @@
 #include "hashmap.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 struct entry {
     char *key;
@@ -72,31 +72,40 @@ struct hashmap *hashmap_create(size_t bucket_count) {
     return map;
 }
 
-void hashmap_put(struct hashmap *map, const char *key, void *value) {
+bool hashmap_put(struct hashmap *map, const char *key, void *value) {
     if (map == NULL || key == NULL) {
-        return;
+        return false;
     }
 
     size_t bucket_index = hash_string(key) % map->bucket_count;
+
+    struct entry *previous = NULL;
     struct entry *current = map->buckets[bucket_index];
 
-    while(current != NULL && current->next != NULL) {
+    while(current != NULL) {
+        if (strcmp(key, current->key) == 0) {
+            current->value = value;
+            return true;
+        }
+        previous = current;
         current = current->next;
     }
 
     struct entry *entry = entry_create(key, value);
 
     if (entry == NULL) {
-        return;
+        return false;
     }
     
-    if (current == NULL) {
+    if (previous == NULL) {
         map->buckets[bucket_index] = entry;
     } else {
-        current->next = entry;
+        previous->next = entry;
     }
 
     map->entry_count++;
+    
+    return true;
 }
 
 void *hashmap_get(struct hashmap *map, const char *key) {
