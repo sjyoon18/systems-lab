@@ -6,6 +6,7 @@
 struct hashmap;
 
 struct hashmap *hashmap_create(size_t bucket_count);
+void *hashmap_get(struct hashmap *map, const char *key);
 void hashmap_destroy(struct hashmap *map);
 
 #endif

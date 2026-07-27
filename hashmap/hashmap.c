@@ -1,5 +1,6 @@
 #include "hashmap.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -96,6 +97,24 @@ void hashmap_put(struct hashmap *map, const char *key, void *value) {
     }
 
     map->entry_count++;
+}
+
+void *hashmap_get(struct hashmap *map, const char *key) {
+    if (map == NULL || key == NULL) {
+        return NULL;
+    }
+
+    size_t bucket_index = hash_string(key) % map->bucket_count;
+    struct entry *current = map->buckets[bucket_index];
+
+    while (current != NULL) {
+        if (strcmp(key, current->key) == 0) {
+            return current->value;
+        }
+        current = current->next;
+    }
+
+    return NULL;
 }
 
 static void entry_destroy(struct entry *entry) {
