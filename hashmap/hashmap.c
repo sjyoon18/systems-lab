@@ -47,6 +47,52 @@ static struct entry *entry_create(const char *key, void *value) {
     return entry;
 }
 
+static void entry_destroy(struct entry *entry) {
+    if (entry == NULL) {
+        return;
+    }
+
+    free(entry->key);
+    free(entry);
+}
+
+static bool hashmap_resize(struct hashmap *map, size_t new_bucket_count) {
+    if (map == NULL || new_bucket_count == 0) {
+        return false;
+    }
+
+    struct entry **new_buckets = calloc(new_bucket_count, sizeof(*new_buckets));
+
+    if (new_buckets == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < map->bucket_count; i++) {
+
+        struct entry *current = map->buckets[i];
+
+        while (current != NULL) {
+            struct entry *next = current->next;
+
+            size_t new_bucket_index = hash_string(current->key) % new_bucket_count;
+            
+            current->next = new_buckets[new_bucket_index];
+            new_buckets[new_bucket_index] = current;
+
+            current = next;
+        }
+    }
+
+    struct entry **old_buckets = map->buckets;
+
+    map->buckets = new_buckets;
+    map->bucket_count = new_bucket_count;
+
+    free(old_buckets);
+
+    return true;
+}
+
 struct hashmap *hashmap_create(size_t bucket_count) {
     if (bucket_count == 0) {
         return NULL;
@@ -78,7 +124,6 @@ bool hashmap_put(struct hashmap *map, const char *key, void *value) {
 
     size_t bucket_index = hash_string(key) % map->bucket_count;
 
-    struct entry *previous = NULL;
     struct entry *current = map->buckets[bucket_index];
 
     while(current != NULL) {
@@ -86,8 +131,16 @@ bool hashmap_put(struct hashmap *map, const char *key, void *value) {
             current->value = value;
             return true;
         }
-        previous = current;
+
         current = current->next;
+    }
+
+    if (map->entry_count >= map->bucket_count) {
+        if (!hashmap_resize(map, 2 * map->bucket_count)) {
+            return false;
+        }
+
+        bucket_index = hash_string(key) % map->bucket_count;
     }
 
     struct entry *entry = entry_create(key, value);
@@ -96,11 +149,8 @@ bool hashmap_put(struct hashmap *map, const char *key, void *value) {
         return false;
     }
     
-    if (previous == NULL) {
-        map->buckets[bucket_index] = entry;
-    } else {
-        previous->next = entry;
-    }
+    entry->next = map->buckets[bucket_index];
+    map->buckets[bucket_index] = entry;
 
     map->entry_count++;
 
@@ -146,21 +196,12 @@ bool hashmap_remove(struct hashmap *map, const char *key) {
             map->entry_count--;
             return true;
         }
-        
+
         previous = current;
         current = current->next;
     }
 
     return false;
-}
-
-static void entry_destroy(struct entry *entry) {
-    if (entry == NULL) {
-        return;
-    }
-
-    free(entry->key);
-    free(entry);
 }
 
 void hashmap_destroy(struct hashmap *map) {
