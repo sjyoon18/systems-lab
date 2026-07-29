@@ -3,6 +3,17 @@
 
 #include "../hashmap.h"
 
+static void assert_key_value(struct hashmap *map, const char *key, int expected) {
+    int *result = hashmap_get(map, key);
+
+    assert(result != NULL);
+    assert(*result == expected);
+}
+
+static void assert_missing(struct hashmap *map, const char *key) {
+    assert(hashmap_get(map, key) == NULL);
+}
+
 static void test_create_destroy(void) {
     struct hashmap *map = hashmap_create(8);
     assert(map != NULL);
@@ -16,12 +27,9 @@ static void test_put_get(void) {
 
     int value = 20;
 
-    assert(hashmap_put(map, "age", &value));
+    assert(hashmap_put(map, "key", &value));
 
-    int *result = hashmap_get(map, "age");
-
-    assert(result != NULL);
-    assert(*result == 20);
+    assert_key_value(map, "key", 20);
 
     hashmap_destroy(map);
 }
@@ -33,39 +41,33 @@ static void test_update_existing_key(void) {
     int x = 20;
     int y = 40;
 
-    assert(hashmap_put(map, "age", &x));
-    assert(hashmap_put(map, "age", &y));
+    assert(hashmap_put(map, "key", &x));
+    assert(hashmap_put(map, "key", &y));
 
-    int *result = hashmap_get(map, "age");
-
-    assert(result != NULL);
-    assert(*result == 40);
+    assert_key_value(map, "key", 40);
 
     hashmap_destroy(map);
 }
 
-static void test_remove(void)
-{
+static void test_remove(void) {
     struct hashmap *map = hashmap_create(8);
     assert(map != NULL);
 
     int value = 20;
 
-    assert(hashmap_put(map, "age", &value));
-    assert(hashmap_remove(map, "age"));
-    assert(hashmap_get(map, "age") == NULL);
-    assert(!hashmap_remove(map, "age"));
+    assert(hashmap_put(map, "key", &value));
+    assert(hashmap_remove(map, "key"));
+    assert_missing(map, "key");
+    assert(!hashmap_remove(map, "key"));
 
     hashmap_destroy(map);
 }
 
-static void test_missing_key(void)
-{
+static void test_missing_key(void) {
     struct hashmap *map = hashmap_create(8);
-
     assert(map != NULL);
 
-    assert(hashmap_get(map, "missing") == NULL);
+    assert_missing(map, "missing");
     assert(!hashmap_remove(map, "missing"));
 
     hashmap_destroy(map);
@@ -73,7 +75,6 @@ static void test_missing_key(void)
 
 static void test_collisions(void) {
     struct hashmap *map = hashmap_create(1);
-
     assert(map != NULL);
 
     int a = 10;
@@ -86,20 +87,119 @@ static void test_collisions(void) {
     assert(hashmap_put(map, "C", &c));
     assert(hashmap_put(map, "D", &d));
 
-    int *result_a = hashmap_get(map, "A");
-    int *result_b = hashmap_get(map, "B");
-    int *result_c = hashmap_get(map, "C");
-    int *result_d = hashmap_get(map, "D");
+    assert_key_value(map, "A", 10);
+    assert_key_value(map, "B", 20);
+    assert_key_value(map, "C", 30);
+    assert_key_value(map, "D", 40);
 
-    assert(result_a != NULL);
-    assert(result_b != NULL);
-    assert(result_c != NULL);
-    assert(result_d != NULL);
+    hashmap_destroy(map);
+}
 
-    assert(*(int *)hashmap_get(map, "A") == 10);
-    assert(*(int *)hashmap_get(map, "B") == 20);
-    assert(*(int *)hashmap_get(map, "C") == 30);
-    assert(*(int *)hashmap_get(map, "D") == 40);
+static void test_collision_remove(void) {
+    struct hashmap *map = hashmap_create(1);
+    assert(map != NULL);
+
+    int a = 10;
+    int b = 20;
+    int c = 30;
+    int d = 40;
+
+    assert(hashmap_put(map, "A", &a));
+    assert(hashmap_put(map, "B", &b));
+    assert(hashmap_put(map, "C", &c));
+    assert(hashmap_put(map, "D", &d));
+
+    assert(hashmap_remove(map, "D"));
+
+    assert_key_value(map, "A", 10);
+    assert_key_value(map, "B", 20);
+    assert_key_value(map, "C", 30);
+    assert_missing(map, "D");
+
+    assert(hashmap_remove(map, "B"));
+
+    assert_key_value(map, "A", 10);
+    assert_missing(map, "B");
+    assert_key_value(map, "C", 30);
+    assert_missing(map, "D");
+
+    assert(hashmap_remove(map, "A"));
+
+    assert_missing(map, "A");
+    assert_missing(map, "B");
+    assert_key_value(map, "C", 30);
+    assert_missing(map, "D");
+
+    hashmap_destroy(map);
+}
+
+static void test_resize(void) {
+    enum { NUM_ENTRIES = 1000 };
+
+    struct hashmap *map = hashmap_create(2);
+    assert(map != NULL);
+
+    int values[NUM_ENTRIES];
+
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        char key[32];
+        values[i] = i;
+        
+        snprintf(key, sizeof(key), "key%d", i);
+        assert(hashmap_put(map, key, &values[i]));
+    }
+
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        char key[32];
+
+        snprintf(key, sizeof(key), "key%d", i);
+
+        assert_key_value(map, key, i);
+    }
+
+    hashmap_destroy(map);
+}
+
+static void test_stress_remove(void) {
+    enum { NUM_ENTRIES = 1000 };
+
+    struct hashmap *map = hashmap_create(2);
+    assert(map != NULL);
+
+    int values[NUM_ENTRIES];
+
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        char key[32];
+        values[i] = i;
+        
+        snprintf(key, sizeof(key), "key%d", i);
+        assert(hashmap_put(map, key, &values[i]));
+    }
+
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        char key[32];
+
+        snprintf(key, sizeof(key), "key%d", i);
+
+        assert_key_value(map, key, i);
+    }
+
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        char key[32];
+
+        snprintf(key, sizeof(key), "key%d", i);
+
+        assert(hashmap_remove(map, key));
+        assert(!hashmap_remove(map, key));
+    }
+
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        char key[32];
+
+        snprintf(key, sizeof(key), "key%d", i);
+
+        assert_missing(map, key);
+    }
 
     hashmap_destroy(map);
 }
@@ -123,6 +223,15 @@ int main(void)
 
     test_collisions();
     puts("PASS: collisions");
+
+    test_collision_remove();
+    puts("PASS: collision_remove");
+
+    test_resize();
+    puts("PASS: resize");
+
+    test_stress_remove();
+    puts("PASS: stress_remove");
 
     return 0;
 }
