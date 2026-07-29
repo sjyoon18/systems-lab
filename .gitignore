@@ -8,9 +8,11 @@ http_server_select
 thread_pool_http_server
 queue_test
 thread_pool_test
+hashmap_tests
 a.out
 
 .DS_Store
+__MACOSX/
 
 .vscode/
 
