@@ -1,16 +1,27 @@
 # Systems Lab
 
-A collection of systems programming projects written in C to develop a deeper understanding of operating systems, memory management, networking, concurrency, and low-level systems.
+This repository documents my journey through systems programming by implementing fundamental systems components in C.
 
-Rather than focusing on frameworks or libraries, each project explores a fundamental systems concept by implementing it from scratch and documenting the design decisions, implementation process, and lessons learned.
+Each project explores a core systems concept through hands-on implementation, with an emphasis on understanding how the underlying mechanisms work rather than simply using existing libraries or APIs.
 
 ---
 
-## Why This Repository?
+## Goal & Motivation
 
-This repository serves as my systems programming foundation as I work toward becoming a systems, security, and backend infrastructure engineer.
+This repository serves as the foundation of my systems programming journey as I work toward becoming a systems, security, and backend infrastructure engineer.
 
-Each project was built to understand not only how an API is used, but how the underlying mechanisms are implemented.
+Rather than learning only how to use existing libraries or APIs, I built each project to understand how the underlying mechanisms work and why they are designed the way they are.
+
+---
+
+## Engineering Principles
+
+Throughout this repository, I aimed to:
+
+- Understand system abstractions by implementing them from scratch.
+- Prioritize correctness and readability over premature optimization.
+- Build projects incrementally, testing individual components before integrating them.
+- Document design decisions and reflect on lessons learned throughout the development process.
 
 ---
 
@@ -24,10 +35,10 @@ Each project builds on concepts introduced in previous ones. Rather than impleme
 | 2 | Networking | TCP sockets, client/server communication |
 | 3 | HTTP Servers | HTTP, concurrency, server architecture |
 | 4 | Memory Allocator | Heap management, free lists, memory ownership |
-| 5 | Thread Pool | Multithreading, synchronization, task scheduling |
-| 6 | Hash Map | Dynamic memory, hashing, generic data structures, testing |
+| 5 | Thread Pool | POSIX threads, synchronization, task scheduling |
+| 6 | Hash Map | Hashing, dynamic memory, generic data structures, testing |
 
-Each project contains its own documentation describing the implementation, design decisions, testing, and personal reflections.
+Each project includes accompanying documentation covering the implementation, design decisions, testing, and reflections from the development process.
 
 ---
 
@@ -45,21 +56,17 @@ systems-lab/
 
 ---
 
-## Skills Developed
+## Key Takeaways
 
-Throughout these projects I focused on understanding:
+Through these projects, I gained hands-on experience with:
 
-- C programming
-- Linux systems programming
-- Process management
-- Dynamic memory management
-- Data structures
-- Socket programming
-- Multithreading
-- Synchronization primitives
-- Debugging with GDB and AddressSanitizer
-- Unit testing
-- Technical documentation
+- Writing systems software in C.
+- Understanding operating system abstractions through implementation.
+- Building networked applications using TCP sockets and HTTP.
+- Managing memory manually and reasoning about ownership.
+- Coordinating concurrent execution with POSIX threads.
+- Designing reusable data structures and software components.
+- Developing software incrementally through testing, debugging, and documentation.
 
 ---
 
@@ -67,6 +74,6 @@ Throughout these projects I focused on understanding:
 
 This repository serves as the systems programming foundation for my broader goal of becoming a systems, security, and backend infrastructure engineer.
 
-The concepts explored here are intended to support future work in operating systems, networking, applied cryptography, distributed systems, security engineering, and blockchain infrastructure.
+The concepts explored here support my future work in operating systems, networking, applied cryptography, distributed systems, security engineering, and blockchain infrastructure.
 
-Throughout the repository, priority is given to correctness, readability, testing, and documenting the reasoning behind each implementation.
+More importantly, this repository reflects my approach to learning: understanding systems by building them, documenting the design decisions behind them, and validating their correctness through testing.
